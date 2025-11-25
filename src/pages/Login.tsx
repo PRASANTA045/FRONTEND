@@ -25,19 +25,17 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      await login(email, password);
+      const user = await login(email, password); // AuthContext returns user
 
       toast.success("Login successful!");
 
-      const storedUser = sessionStorage.getItem("user");
-      const user = storedUser ? JSON.parse(storedUser) : null;
-
-      if (user?.role === "ADMIN") {
+      if (user.role === "ADMIN") {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
-    } catch (error) {
+
+    } catch (error: any) {
       toast.error("Invalid credentials");
     }
   };
@@ -83,7 +81,7 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link to="/signup" className="text-primary hover:underline">
               Create account
             </Link>

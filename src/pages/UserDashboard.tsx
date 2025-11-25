@@ -14,7 +14,8 @@ const UserDashboard = () => {
     const fetchCourses = async () => {
       try {
         const res = await getMyCourses();
-        // Make sure it's always an array
+
+        // Ensure data is array
         setEnrolledCourses(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to fetch purchased courses", err);
@@ -29,6 +30,7 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
+        {/* HEADER */}
         <div className="mb-8">
           <h1 className="mb-2 text-4xl font-bold">
             Welcome back, {user?.fullName}!
@@ -54,6 +56,7 @@ const UserDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
@@ -65,6 +68,7 @@ const UserDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-glow/10">
@@ -81,6 +85,7 @@ const UserDashboard = () => {
         {/* My Courses */}
         <div>
           <h2 className="mb-6 text-2xl font-bold">My Courses</h2>
+
           {loading ? (
             <p>Loading...</p>
           ) : enrolledCourses.length > 0 ? (
@@ -91,7 +96,7 @@ const UserDashboard = () => {
                   course={{
                     id: course.courseId,
                     title: course.courseTitle,
-                    description: "No description",
+                    description: "No description available",
                     category: "General",
                     level: "Beginner",
                     duration: "N/A",
@@ -99,7 +104,7 @@ const UserDashboard = () => {
                     rating: 0,
                     instructor: course.instructor,
                     price: 0,
-                    image: "/placeholder.jpg",
+                    image: `${import.meta.env.VITE_API_BASE_URL}${course.imageUrl}`,
                     mode: course.mode,
                   }}
                 />

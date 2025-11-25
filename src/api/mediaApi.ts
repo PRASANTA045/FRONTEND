@@ -1,28 +1,22 @@
-import axios from "axios";
+import api from "./axios"; // ✅ use global axios instance
 
-const API = "http://localhost:9090/api/media";
+// BASE PATH — NO localhost
+const BASE = "/api/media";
 
+// UPLOAD MEDIA
 export const uploadMedia = (file: File, uploadedBy: string) => {
-  const token = sessionStorage.getItem("token");
-
   const formData = new FormData();
   formData.append("file", file);
   formData.append("uploadedBy", uploadedBy);
 
-  return axios.post(`${API}/upload`, formData, {
+  return api.post(`${BASE}/upload`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
-      Authorization: `Bearer ${token}`, // ✅ REQUIRED
     },
   });
 };
 
+// GET ALL MEDIA
 export const getAllMedia = () => {
-  const token = sessionStorage.getItem("token");
-
-  return axios.get(`${API}/all`, {
-    headers: {
-      Authorization: `Bearer ${token}`, // ✅ REQUIRED
-    },
-  });
+  return api.get(`${BASE}/all`);
 };

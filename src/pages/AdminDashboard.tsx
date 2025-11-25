@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
 import {
   getAllPurchases,
   getAllUsersWithPurchases,
@@ -16,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
 import {
   Select,
   SelectTrigger,
@@ -23,7 +26,14 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from "@/components/ui/tabs";
+
 import {
   Table,
   TableBody,
@@ -32,16 +42,12 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+
 import {
-  BookOpen,
-  Users,
-  DollarSign,
-  TrendingUp,
   Pencil,
   Trash2,
   Plus,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import {
   getAllCourses,
@@ -49,9 +55,11 @@ import {
   updateCourse,
   deleteCourse,
 } from "@/api/courseApi";
+
 import { getAllUsers } from "@/api/userApi";
-import { uploadMedia, getAllMedia } from "@/api/mediaApi";
-import { getAllCenters, createCenter } from "@/api/centerApi"; // <-- Import createCenter
+import { getAllMedia } from "@/api/mediaApi";
+import { getAllCenters, createCenter } from "@/api/centerApi";
+
 
 const AdminDashboard = () => {
   const [open, setOpen] = useState(false);
@@ -61,12 +69,12 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [media, setMedia] = useState<any[]>([]);
   const [centers, setCenters] = useState<any[]>([]);
-  const [enrollments, setEnrollments] = useState<any[]>([]);
-
-  const [activeTab, setActiveTab] = useState("overview");
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("overview");
+
   const [formData, setFormData] = useState({
-    // ---- for course ----
+    // course fields
     title: "",
     description: "",
     category: "development",
@@ -77,7 +85,8 @@ const AdminDashboard = () => {
     imageUrl: "",
     mode: "both",
     centerId: "",
-    // ---- for center ----
+
+    // center fields
     centerName: "",
     address: "",
     city: "",
@@ -85,9 +94,10 @@ const AdminDashboard = () => {
     contactNumber: "",
   });
 
+  // RESET FUNCTIONS
   const resetCourseForm = () => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       title: "",
       description: "",
       category: "development",
@@ -98,23 +108,21 @@ const AdminDashboard = () => {
       imageUrl: "",
       mode: "both",
       centerId: "",
-    });
+    }));
   };
 
   const resetCenterForm = () => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       centerName: "",
       address: "",
       city: "",
       state: "",
       contactNumber: "",
-    });
+    }));
   };
 
-  // ----------------------------------------------------
-  // LOAD DATA
-  // ----------------------------------------------------
+  // LOAD INITIAL DATA
   useEffect(() => {
     loadCourses();
     loadUsers();
@@ -157,7 +165,7 @@ const AdminDashboard = () => {
   const loadPurchases = async () => {
     try {
       const res = await getAllPurchases();
-      const data = res.data.content || res.data; // handle both cases
+      const data = res.data.content || res.data;
       setPurchases(Array.isArray(data) ? data : []);
     } catch {
       toast.error("Failed to load purchased courses");
@@ -176,22 +184,17 @@ const AdminDashboard = () => {
   const loadEnrollments = async () => {
     try {
       const res = await getAllUsersWithPurchases();
-      setEnrollments(res.data); // array of UserPurchaseSummaryDto
+      setEnrollments(res.data);
     } catch {
       toast.error("Failed to load enrollments");
     }
   };
 
-  // ----------------------------------------------------
-  // COURSE FORM SUBMIT
-  // ----------------------------------------------------
+  // COURSE SUBMIT
   const handleCourseSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (
-      (formData.mode === "offline" || formData.mode === "both") &&
-      !formData.centerId
-    ) {
+    if ((formData.mode === "offline" || formData.mode === "both") && !formData.centerId) {
       toast.error("Please select a center.");
       return;
     }
@@ -229,8 +232,9 @@ const AdminDashboard = () => {
 
   const handleEdit = (course: any) => {
     setEditingCourse(course);
-    setFormData({
-      ...formData,
+
+    setFormData((prev) => ({
+      ...prev,
       title: course.courseTitle,
       description: course.description,
       category: course.category,
@@ -241,7 +245,8 @@ const AdminDashboard = () => {
       imageUrl: course.imageUrl,
       mode: course.mode,
       centerId: course.centerId || "",
-    });
+    }));
+
     setOpen(true);
   };
 
@@ -255,9 +260,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // ----------------------------------------------------
-  // CENTER FORM SUBMIT
-  // ----------------------------------------------------
+  // CENTER SUBMIT
   const handleCenterSubmit = async (e: any) => {
     e.preventDefault();
     try {
@@ -268,6 +271,7 @@ const AdminDashboard = () => {
         state: formData.state,
         contactNumber: formData.contactNumber,
       });
+
       toast.success("Center added successfully!");
       resetCenterForm();
       loadCenters();
@@ -275,18 +279,15 @@ const AdminDashboard = () => {
       toast.error("Failed to add center");
     }
   };
-  // ----------------------------------------------------
-  // RENDER PREP: CALCULATE ENROLLED USERS
-  // ----------------------------------------------------
 
-  // Calculate unique users who have made a purchase (enrolled students)
+  // UNIQUE ENROLLED USERS
   const enrolledUsers = Array.from(new Set(purchases.map((p) => p.user?.id)))
-    .map((userId) => users.find((u) => u.id === userId))
-    .filter((user) => user !== undefined);
+    .map((uid) => users.find((u) => u.id === uid))
+    .filter(Boolean);
 
-  // ----------------------------------------------------
+  // -------------------------------------------------------
   // RENDER
-  // ----------------------------------------------------
+  // -------------------------------------------------------
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
@@ -306,7 +307,6 @@ const AdminDashboard = () => {
               </Button>
             </DialogTrigger>
 
-            {/* ADD / EDIT COURSE MODAL */}
             <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
@@ -314,8 +314,9 @@ const AdminDashboard = () => {
                 </DialogTitle>
               </DialogHeader>
 
+              {/* ADD/EDIT COURSE FORM */}
               <form onSubmit={handleCourseSubmit} className="space-y-4">
-                {/* TITLE */}
+
                 <div>
                   <Label>Course Title *</Label>
                   <Input
@@ -327,7 +328,6 @@ const AdminDashboard = () => {
                   />
                 </div>
 
-                {/* DESCRIPTION */}
                 <div>
                   <Label>Description *</Label>
                   <Textarea
@@ -339,7 +339,6 @@ const AdminDashboard = () => {
                   />
                 </div>
 
-                {/* CATEGORY + LEVEL */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Category *</Label>
@@ -349,9 +348,7 @@ const AdminDashboard = () => {
                         setFormData({ ...formData, category: v })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="development">Development</SelectItem>
                         <SelectItem value="editing">Editing</SelectItem>
@@ -368,21 +365,16 @@ const AdminDashboard = () => {
                         setFormData({ ...formData, level: v })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate
-                        </SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
                         <SelectItem value="advanced">Advanced</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                {/* INSTRUCTOR + DURATION */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Instructor *</Label>
@@ -407,7 +399,6 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* PRICE + MODE */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Price *</Label>
@@ -433,9 +424,7 @@ const AdminDashboard = () => {
                         })
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="online">Online</SelectItem>
                         <SelectItem value="offline">Offline</SelectItem>
@@ -445,7 +434,6 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* CENTER (Conditional) */}
                 {(formData.mode === "offline" || formData.mode === "both") && (
                   <div>
                     <Label>Select Center *</Label>
@@ -469,7 +457,6 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {/* IMAGE URL */}
                 <div>
                   <Label>Image URL</Label>
                   <Input
@@ -480,7 +467,6 @@ const AdminDashboard = () => {
                   />
                 </div>
 
-                {/* ACTION BUTTONS */}
                 <div className="flex gap-3 mt-4">
                   <Button className="flex-1" type="submit">
                     {editingCourse ? "Update Course" : "Add Course"}
@@ -495,88 +481,39 @@ const AdminDashboard = () => {
                     Cancel
                   </Button>
                 </div>
+
               </form>
+
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* ----------------------------------------------------
-            DASHBOARD TABS
-        ---------------------------------------------------- */}
+        {/* TABS */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          {/* MODIFIED: Changed from grid layout to flex-nowrap to guarantee one line */}
           <TabsList className="flex w-full overflow-x-auto justify-start border-b border-input">
-            <TabsTrigger value="overview" className="flex-shrink-0">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex-shrink-0">
-              Courses
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex-shrink-0">
-              All Users
-            </TabsTrigger>
-            <TabsTrigger value="enrollments" className="flex-shrink-0">
-              Enrollments
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="flex-shrink-0">
-              Transactions
-            </TabsTrigger>
-            <TabsTrigger value="media" className="flex-shrink-0">
-              Media
-            </TabsTrigger>
-            <TabsTrigger value="centers" className="flex-shrink-0">
-              Centers
-            </TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="courses">Courses</TabsTrigger>
+            <TabsTrigger value="users">All Users</TabsTrigger>
+            <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="centers">Centers</TabsTrigger>
           </TabsList>
 
-          {/* -------- OVERVIEW -------- */}
+          {/* OVERVIEW */}
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Total Courses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{courses.length}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Total Students</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{users.length}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Revenue</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹0</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Completion Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">85%</div>
-                </CardContent>
-              </Card>
+              <Card><CardHeader><CardTitle>Total Courses</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{courses.length}</div></CardContent></Card>
+              <Card><CardHeader><CardTitle>Total Students</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{users.length}</div></CardContent></Card>
+              <Card><CardHeader><CardTitle>Revenue</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">₹0</div></CardContent></Card>
+              <Card><CardHeader><CardTitle>Completion Rate</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">85%</div></CardContent></Card>
             </div>
           </TabsContent>
 
-          {/* -------- COURSES TAB -------- */}
+          {/* COURSES TAB */}
           <TabsContent value="courses" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>All Courses</CardTitle>
-              </CardHeader>
-
+              <CardHeader><CardTitle>All Courses</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -600,22 +537,14 @@ const AdminDashboard = () => {
                         <TableCell>{c.mode}</TableCell>
 
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(c)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(c.id)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
@@ -624,13 +553,10 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* -------- USERS TAB (All Users) -------- */}
+          {/* USERS TAB */}
           <TabsContent value="users" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Registered Users (Excluding Admin)</CardTitle>
-              </CardHeader>
-
+              <CardHeader><CardTitle>Registered Users (Excluding Admin)</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -650,18 +576,16 @@ const AdminDashboard = () => {
                       </TableRow>
                     ))}
                   </TableBody>
+
                 </Table>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* -------- ENROLLMENTS TAB (Unique Enrolled Students) -------- */}
+          {/* ENROLLMENTS TAB */}
           <TabsContent value="enrollments" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Enrolled Students ({enrollments.length})</CardTitle>
-              </CardHeader>
-
+              <CardHeader><CardTitle>Enrolled Students ({enrollments.length})</CardTitle></CardHeader>
               <CardContent>
                 {enrollments.length === 0 ? (
                   <p className="text-muted-foreground">No enrollments found.</p>
@@ -690,6 +614,7 @@ const AdminDashboard = () => {
                               </div>
                             ))}
                           </TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>
@@ -699,12 +624,10 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* -------- TRANSACTIONS TAB (Existing Purchase Data) -------- */}
+          {/* TRANSACTIONS TAB */}
           <TabsContent value="transactions" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Course Transactions</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Course Transactions</CardTitle></CardHeader>
               <CardContent>
                 {purchases.length === 0 ? (
                   <p className="text-muted-foreground">No transactions yet.</p>
@@ -728,37 +651,31 @@ const AdminDashboard = () => {
                           <TableCell>{p.user?.email}</TableCell>
                           <TableCell>{p.course?.courseTitle}</TableCell>
                           <TableCell>₹{p.course?.price}</TableCell>
-                          <TableCell>
-                            {new Date(p.purchaseDate).toLocaleDateString()}
-                          </TableCell>
+                          <TableCell>{new Date(p.purchaseDate).toLocaleDateString()}</TableCell>
                           <TableCell>{p.paymentStatus || "Paid"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
+
                   </Table>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* -------- MEDIA TAB -------- */}
+          {/* MEDIA TAB */}
           <TabsContent value="media" className="mt-6">
             <Card className="p-4">
-              <CardHeader>
-                <CardTitle>Media Library</CardTitle>
-              </CardHeader>
-
+              <CardHeader><CardTitle>Media Library</CardTitle></CardHeader>
               <CardContent>
                 {media.length === 0 ? (
-                  <p className="text-muted-foreground">
-                    No media uploaded yet.
-                  </p>
+                  <p className="text-muted-foreground">No media uploaded yet.</p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {media.map((m) => (
                       <img
                         key={m.id}
-                        src={`http://localhost:9090${m.fileUrl}`}
+                        src={`${import.meta.env.VITE_API_BASE_URL}${m.fileUrl}`}
                         className="rounded shadow"
                       />
                     ))}
@@ -771,9 +688,7 @@ const AdminDashboard = () => {
           {/* CENTERS TAB */}
           <TabsContent value="centers" className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Manage Centers</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Manage Centers</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleCenterSubmit} className="space-y-4">
                   <div>
@@ -781,72 +696,59 @@ const AdminDashboard = () => {
                     <Input
                       required
                       value={formData.centerName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, centerName: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, centerName: e.target.value })}
                     />
                   </div>
+
                   <div>
                     <Label>Address *</Label>
                     <Input
                       required
                       value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     />
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>City *</Label>
                       <Input
                         required
                         value={formData.city}
-                        onChange={(e) =>
-                          setFormData({ ...formData, city: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       />
                     </div>
+
                     <div>
                       <Label>State *</Label>
                       <Input
                         required
                         value={formData.state}
-                        onChange={(e) =>
-                          setFormData({ ...formData, state: e.target.value })
-                        }
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                       />
                     </div>
                   </div>
+
                   <div>
                     <Label>Contact Number *</Label>
                     <Input
                       required
                       value={formData.contactNumber}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contactNumber: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
                     />
                   </div>
-                  <Button type="submit" className="w-full">
-                    Add Center
-                  </Button>
+
+                  <Button type="submit" className="w-full">Add Center</Button>
                 </form>
 
                 <div className="mt-6">
                   {centers.length === 0 ? (
-                    <p className="text-muted-foreground">
-                      No centers added yet.
-                    </p>
+                    <p className="text-muted-foreground">No centers added yet.</p>
                   ) : (
                     <ul className="space-y-2">
                       {centers.map((c) => (
                         <li key={c.id} className="p-3 border rounded">
-                          <strong>{c.centerName}</strong> - {c.address},{" "}
-                          {c.city}, {c.state} ({c.contactNumber})
+                          <strong>{c.centerName}</strong> — {c.address}, {c.city}, {c.state} ({c.contactNumber})
                         </li>
                       ))}
                     </ul>
@@ -855,6 +757,7 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
         </Tabs>
       </div>
     </div>

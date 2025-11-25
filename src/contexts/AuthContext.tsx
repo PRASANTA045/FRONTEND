@@ -11,8 +11,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   signup: (fullName: string, email: string, password: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -21,16 +21,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Load token + user from sessionStorage after refresh
+  // -----------------------------
+  // AUTO-LOGIN (if cookie exists)
+  // -----------------------------
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    const userStr = sessionStorage.getItem("user");
-    if (token && userStr) {
-      setUser(JSON.parse(userStr));
-    }
+    const loadUser = async () => {
+      try {
+        const res = await api.get("/api/users/me"); // cookie auto-sent
+        setUser(res.data);
+      } catch {
+        setUser(null);
+      }
+    };
+
+    loadUser();
   }, []);
 
+  // -----------------------------
   // SIGNUP
+  // -----------------------------
   const signup = async (fullName: string, email: string, password: string) => {
     await api.post("/api/auth/register", {
       fullName,
@@ -40,22 +49,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // LOGIN
+  // -----------------------------
+  // LOGIN (cookie auto-handled)
+  // -----------------------------
   const login = async (email: string, password: string) => {
-    const response = await api.post("/api/auth/login", { email, password });
+    const res = await api.post("/api/auth/login", { email, password });
 
-    const token = response.data.token;
-    sessionStorage.setItem("token", token);
+    // Backend returns { message, user }
+    const loggedUser = res.data.user;
+    setUser(loggedUser);
 
-    // fetch user details
-    const me = await api.get("/api/users/me");
-    sessionStorage.setItem("user", JSON.stringify(me.data));
-    setUser(me.data);
+    return loggedUser; // return so login page knows role
   };
 
+  // -----------------------------
   // LOGOUT
-  const logout = () => {
-    sessionStorage.clear(); // delete everything
+  // -----------------------------
+  const logout = async () => {
+    try {
+      await api.post("/api/auth/logout"); // backend cookie clear karega
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     setUser(null);
   };
 
@@ -75,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used inside AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };

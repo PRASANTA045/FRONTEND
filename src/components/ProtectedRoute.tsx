@@ -1,9 +1,14 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const token = sessionStorage.getItem("token"); // <-- changed here
+  const { user } = useAuth();
+  const token = sessionStorage.getItem("token");
 
-  if (!token) return <Navigate to="/login" />;
+  // If no token or no user → block access
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
 };

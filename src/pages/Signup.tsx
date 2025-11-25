@@ -18,6 +18,7 @@ const Signup = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const { signup } = useAuth();
   const navigate = useNavigate();
 
@@ -26,10 +27,16 @@ const Signup = () => {
 
     try {
       await signup(fullName, email, password);
+
       toast.success("Account created successfully!");
+
       navigate("/login");
-    } catch (error) {
-      toast.error("This email is already registered with a different name.");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        "This email is already registered with a different name.";
+
+      toast.error(msg);
     }
   };
 
