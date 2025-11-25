@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   signup: (fullName: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => Promise<void>;
+  logout: () => void;
   isAdmin: boolean;
 }
 
@@ -21,25 +21,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // -----------------------------
-  // AUTO-LOGIN (if cookie exists)
-  // -----------------------------
+  // -----------------------------------------------------
+  //  LOAD USER FROM sessionStorage ON PAGE REFRESH
+  // -----------------------------------------------------
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const res = await api.get("/api/users/me"); // cookie auto-sent
-        setUser(res.data);
-      } catch {
-        setUser(null);
-      }
-    };
-
-    loadUser();
+    const savedUser = sessionStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
   }, []);
 
-  // -----------------------------
+  // -----------------------------------------------------
   // SIGNUP
-  // -----------------------------
+  // -----------------------------------------------------
   const signup = async (fullName: string, email: string, password: string) => {
     await api.post("/api/auth/register", {
       fullName,
@@ -49,28 +43,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // -----------------------------
-  // LOGIN (cookie auto-handled)
-  // -----------------------------
+  // -----------------------------------------------------
+  // LOGIN (JWT HEADER BASED)
+  // -----------------------------------------------------
   const login = async (email: string, password: string) => {
     const res = await api.post("/api/auth/login", { email, password });
 
-    // Backend returns { message, user }
-    const loggedUser = res.data.user;
-    setUser(loggedUser);
+    // backend returns { token: "..." }
+    const token = res.data.token;
+    sessionStorage.setItem("token", token);
 
-    return loggedUser; // return so login page knows role
+    // Now request logged-in user details
+    const me = await api.get("/api/users/me");
+
+    sessionStorage.setItem("user", JSON.stringify(me.data));
+    setUser(me.data);
+
+    return me.data;
   };
 
-  // -----------------------------
+  // -----------------------------------------------------
   // LOGOUT
-  // -----------------------------
-  const logout = async () => {
-    try {
-      await api.post("/api/auth/logout"); // backend cookie clear karega
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+  // -----------------------------------------------------
+  const logout = () => {
+    sessionStorage.clear();
     setUser(null);
   };
 
