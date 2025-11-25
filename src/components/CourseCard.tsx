@@ -1,11 +1,24 @@
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Users, Star } from 'lucide-react';
-import type { Course } from '@/data/mockCourses';
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Users, Star } from "lucide-react";
+import type { Course } from "@/data/mockCourses";
 
-interface CourseCardProps {
-  course: Course;
+export interface CourseCardProps {
+  course: {
+    id: number;
+    title: string;
+    description: string;
+    category: string;
+    level: string;
+    duration: string;
+    students: number;
+    rating: number;
+    instructor: string;
+    price: number;
+    image: string;
+    mode?: string; // optional, if you want
+  };
 }
 
 const CourseCard = ({ course }: CourseCardProps) => {
@@ -50,7 +63,9 @@ const CourseCard = ({ course }: CourseCardProps) => {
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t p-5">
-          <p className="text-sm text-muted-foreground">by {course.instructor}</p>
+          <p className="text-sm text-muted-foreground">
+            by {course.instructor}
+          </p>
           <p className="text-lg font-bold text-primary">₹{course.price}</p>
         </CardFooter>
       </Card>

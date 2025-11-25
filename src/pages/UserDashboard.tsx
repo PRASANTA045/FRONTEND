@@ -1,22 +1,45 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Clock, Award } from 'lucide-react';
-import CourseCard from '@/components/CourseCard';
-import { mockCourses } from '@/data/mockCourses';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, Clock, Award } from "lucide-react";
+import CourseCard from "@/components/CourseCard";
+import { getMyCourses } from "@/api/purchaseApi";
 
 const UserDashboard = () => {
   const { user } = useAuth();
-  const enrolledCourses = mockCourses.slice(0, 2); // Mock enrolled courses
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await getMyCourses();
+        // Make sure it's always an array
+        setEnrolledCourses(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to fetch purchased courses", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
         <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-bold">Welcome back, {user?.name}!</h1>
-          <p className="text-lg text-muted-foreground">Continue your learning journey</p>
+          <h1 className="mb-2 text-4xl font-bold">
+            Welcome back, {user?.fullName}!
+          </h1>
+
+          <p className="text-lg text-muted-foreground">
+            Continue your learning journey
+          </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats */}
         <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
@@ -24,8 +47,10 @@ const UserDashboard = () => {
                 <BookOpen className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">2</p>
-                <p className="text-sm text-muted-foreground">Enrolled Courses</p>
+                <p className="text-2xl font-bold">{enrolledCourses.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  Enrolled Courses
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -56,10 +81,28 @@ const UserDashboard = () => {
         {/* My Courses */}
         <div>
           <h2 className="mb-6 text-2xl font-bold">My Courses</h2>
-          {enrolledCourses.length > 0 ? (
+          {loading ? (
+            <p>Loading...</p>
+          ) : enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrolledCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+                <CourseCard
+                  key={course.purchaseId}
+                  course={{
+                    id: course.courseId,
+                    title: course.courseTitle,
+                    description: "No description",
+                    category: "General",
+                    level: "Beginner",
+                    duration: "N/A",
+                    students: 0,
+                    rating: 0,
+                    instructor: course.instructor,
+                    price: 0,
+                    image: "/placeholder.jpg",
+                    mode: course.mode,
+                  }}
+                />
               ))}
             </div>
           ) : (
@@ -67,7 +110,9 @@ const UserDashboard = () => {
               <CardContent className="flex flex-col items-center justify-center p-12 text-center">
                 <BookOpen className="h-16 w-16 text-muted-foreground mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No courses yet</h3>
-                <p className="text-muted-foreground mb-6">Start your learning journey by enrolling in a course</p>
+                <p className="text-muted-foreground mb-6">
+                  Start your learning journey by enrolling in a course
+                </p>
               </CardContent>
             </Card>
           )}

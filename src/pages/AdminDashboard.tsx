@@ -1,228 +1,354 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Users, DollarSign, TrendingUp, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
-import { mockCourses, type Course } from '@/data/mockCourses';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  getAllPurchases,
+  getAllUsersWithPurchases,
+} from "@/api/purchaseApi";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  BookOpen,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Pencil,
+  Trash2,
+  Plus,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  getAllCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+} from "@/api/courseApi";
+import { getAllUsers } from "@/api/userApi";
+import { uploadMedia, getAllMedia } from "@/api/mediaApi";
+import { getAllCenters, createCenter } from "@/api/centerApi"; // <-- Import createCenter
 
 const AdminDashboard = () => {
   const [open, setOpen] = useState(false);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [editingCourse, setEditingCourse] = useState<any | null>(null);
+
+  const [courses, setCourses] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [media, setMedia] = useState<any[]>([]);
+  const [centers, setCenters] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+
+  const [activeTab, setActiveTab] = useState("overview");
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'development' as Course['category'],
-    instructor: '',
-    duration: '',
-    level: 'beginner' as Course['level'],
-    price: '',
-    image: '',
-    mode: 'both' as Course['mode'],
+    // ---- for course ----
+    title: "",
+    description: "",
+    category: "development",
+    instructor: "",
+    duration: "",
+    level: "beginner",
+    price: "",
+    imageUrl: "",
+    mode: "both",
+    centerId: "",
+    // ---- for center ----
+    centerName: "",
+    address: "",
+    city: "",
+    state: "",
+    contactNumber: "",
   });
 
-  useEffect(() => {
-    loadCourses();
-  }, []);
-
-  const loadCourses = () => {
-    const storedCourses = localStorage.getItem('courses');
-    setCourses(storedCourses ? JSON.parse(storedCourses) : mockCourses);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title || !formData.description || !formData.instructor || !formData.duration || !formData.price) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    const existingCourses = localStorage.getItem('courses');
-    const allCourses = existingCourses ? JSON.parse(existingCourses) : mockCourses;
-
-    if (editingCourse) {
-      // Update existing course
-      const updatedCourses = allCourses.map((c: Course) => 
-        c.id === editingCourse.id ? {
-          ...editingCourse,
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          instructor: formData.instructor,
-          duration: formData.duration,
-          level: formData.level,
-          price: Number(formData.price),
-          image: formData.image || editingCourse.image,
-          mode: formData.mode,
-        } : c
-      );
-      localStorage.setItem('courses', JSON.stringify(updatedCourses));
-      toast.success('Course updated successfully!');
-      setEditingCourse(null);
-    } else {
-      // Add new course
-      const newCourse: Course = {
-        id: String(Date.now()),
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        instructor: formData.instructor,
-        duration: formData.duration,
-        level: formData.level,
-        price: Number(formData.price),
-        image: formData.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800',
-        mode: formData.mode,
-        rating: 0,
-        students: 0,
-      };
-      allCourses.push(newCourse);
-      localStorage.setItem('courses', JSON.stringify(allCourses));
-      toast.success('Course added successfully!');
-    }
-
-    loadCourses();
-    setOpen(false);
+  const resetCourseForm = () => {
     setFormData({
-      title: '',
-      description: '',
-      category: 'development',
-      instructor: '',
-      duration: '',
-      level: 'beginner',
-      price: '',
-      image: '',
-      mode: 'both',
+      ...formData,
+      title: "",
+      description: "",
+      category: "development",
+      instructor: "",
+      duration: "",
+      level: "beginner",
+      price: "",
+      imageUrl: "",
+      mode: "both",
+      centerId: "",
     });
   };
 
-  const handleEdit = (course: Course) => {
+  const resetCenterForm = () => {
+    setFormData({
+      ...formData,
+      centerName: "",
+      address: "",
+      city: "",
+      state: "",
+      contactNumber: "",
+    });
+  };
+
+  // ----------------------------------------------------
+  // LOAD DATA
+  // ----------------------------------------------------
+  useEffect(() => {
+    loadCourses();
+    loadUsers();
+    loadMedia();
+    loadCenters();
+    loadPurchases();
+    loadEnrollments();
+  }, []);
+
+  const loadCenters = async () => {
+    try {
+      const res = await getAllCenters();
+      setCenters(res.data);
+    } catch {
+      toast.error("Failed to load centers");
+    }
+  };
+
+  const loadCourses = async () => {
+    try {
+      const res = await getAllCourses();
+      setCourses(res.data);
+    } catch {
+      toast.error("Failed to load courses");
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const res = await getAllUsers();
+      const filtered = res.data.content
+        ? res.data.content.filter((u: any) => u.role !== "ADMIN")
+        : res.data.filter((u: any) => u.role !== "ADMIN");
+      setUsers(filtered);
+    } catch {
+      toast.error("Failed to load users");
+    }
+  };
+
+  const loadPurchases = async () => {
+    try {
+      const res = await getAllPurchases();
+      const data = res.data.content || res.data; // handle both cases
+      setPurchases(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error("Failed to load purchased courses");
+    }
+  };
+
+  const loadMedia = async () => {
+    try {
+      const res = await getAllMedia();
+      setMedia(res.data);
+    } catch {
+      toast.error("Failed to load media");
+    }
+  };
+
+  const loadEnrollments = async () => {
+    try {
+      const res = await getAllUsersWithPurchases();
+      setEnrollments(res.data); // array of UserPurchaseSummaryDto
+    } catch {
+      toast.error("Failed to load enrollments");
+    }
+  };
+
+  // ----------------------------------------------------
+  // COURSE FORM SUBMIT
+  // ----------------------------------------------------
+  const handleCourseSubmit = async (e: any) => {
+    e.preventDefault();
+
+    if (
+      (formData.mode === "offline" || formData.mode === "both") &&
+      !formData.centerId
+    ) {
+      toast.error("Please select a center.");
+      return;
+    }
+
+    const payload = {
+      courseTitle: formData.title,
+      description: formData.description,
+      category: formData.category,
+      level: formData.level,
+      instructor: formData.instructor,
+      duration: formData.duration,
+      price: Number(formData.price),
+      mode: formData.mode,
+      imageUrl: formData.imageUrl,
+      centerIds: formData.centerId ? [Number(formData.centerId)] : [],
+    };
+
+    try {
+      if (editingCourse) {
+        await updateCourse(editingCourse.id, payload);
+        toast.success("Course updated successfully!");
+      } else {
+        await createCourse(payload);
+        toast.success("Course added successfully!");
+      }
+
+      setOpen(false);
+      setEditingCourse(null);
+      resetCourseForm();
+      loadCourses();
+    } catch {
+      toast.error("Failed to save course");
+    }
+  };
+
+  const handleEdit = (course: any) => {
     setEditingCourse(course);
     setFormData({
-      title: course.title,
+      ...formData,
+      title: course.courseTitle,
       description: course.description,
       category: course.category,
       instructor: course.instructor,
       duration: course.duration,
       level: course.level,
       price: String(course.price),
-      image: course.image,
+      imageUrl: course.imageUrl,
       mode: course.mode,
+      centerId: course.centerId || "",
     });
     setOpen(true);
   };
 
-  const handleDelete = (courseId: string) => {
-    const existingCourses = localStorage.getItem('courses');
-    const allCourses = existingCourses ? JSON.parse(existingCourses) : mockCourses;
-    const updatedCourses = allCourses.filter((c: Course) => c.id !== courseId);
-    localStorage.setItem('courses', JSON.stringify(updatedCourses));
-    loadCourses();
-    toast.success('Course deleted successfully!');
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteCourse(id);
+      toast.success("Course deleted successfully");
+      loadCourses();
+    } catch {
+      toast.error("Failed to delete course");
+    }
   };
 
-  const getEnrolledUsers = () => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    return users.map((user: any, index: number) => ({
-      id: index + 1,
-      name: user.name || user.email.split('@')[0],
-      email: user.email,
-      role: user.email === 'admin@BALC.com' ? 'Admin' : 'User',
-      enrolledCourses: Math.floor(Math.random() * 5) + 1,
-    }));
-  };
-
-  const getTransactions = () => {
-    const enrollments = JSON.parse(localStorage.getItem('enrollments') || '{}');
-    const transactions: any[] = [];
-    Object.entries(enrollments).forEach(([userId, courseIds]: [string, any]) => {
-      courseIds.forEach((courseId: string) => {
-        const course = courses.find(c => c.id === courseId);
-        if (course) {
-          transactions.push({
-            id: `TXN${Date.now()}${Math.random()}`,
-            courseName: course.title,
-            amount: course.price,
-            date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-            status: 'Completed',
-          });
-        }
+  // ----------------------------------------------------
+  // CENTER FORM SUBMIT
+  // ----------------------------------------------------
+  const handleCenterSubmit = async (e: any) => {
+    e.preventDefault();
+    try {
+      await createCenter({
+        centerName: formData.centerName,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        contactNumber: formData.contactNumber,
       });
-    });
-    return transactions;
+      toast.success("Center added successfully!");
+      resetCenterForm();
+      loadCenters();
+    } catch {
+      toast.error("Failed to add center");
+    }
   };
+  // ----------------------------------------------------
+  // RENDER PREP: CALCULATE ENROLLED USERS
+  // ----------------------------------------------------
 
+  // Calculate unique users who have made a purchase (enrolled students)
+  const enrolledUsers = Array.from(new Set(purchases.map((p) => p.user?.id)))
+    .map((userId) => users.find((u) => u.id === userId))
+    .filter((user) => user !== undefined);
+
+  // ----------------------------------------------------
+  // RENDER
+  // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
+        {/* HEADER */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-bold">Admin Dashboard</h1>
-            <p className="text-lg text-muted-foreground">Manage your platform</p>
+            <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-lg text-muted-foreground">
+              Manage your platform
+            </p>
           </div>
-          <Dialog open={open} onOpenChange={(isOpen) => {
-            setOpen(isOpen);
-            if (!isOpen) {
-              setEditingCourse(null);
-              setFormData({
-                title: '',
-                description: '',
-                category: 'development',
-                instructor: '',
-                duration: '',
-                level: 'beginner',
-                price: '',
-                image: '',
-                mode: 'both',
-              });
-            }
-          }}>
+
+          <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-primary to-primary-glow">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Course
+                <Plus className="mr-2 h-4 w-4" /> Add Course
               </Button>
             </DialogTrigger>
+
+            {/* ADD / EDIT COURSE MODAL */}
             <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</DialogTitle>
+                <DialogTitle>
+                  {editingCourse ? "Edit Course" : "Add New Course"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Course Title *</Label>
+
+              <form onSubmit={handleCourseSubmit} className="space-y-4">
+                {/* TITLE */}
+                <div>
+                  <Label>Course Title *</Label>
                   <Input
-                    id="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Complete Web Development Bootcamp"
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
+                {/* DESCRIPTION */}
+                <div>
+                  <Label>Description *</Label>
                   <Textarea
-                    id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Course description..."
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     required
                   />
                 </div>
 
+                {/* CATEGORY + LEVEL */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={(value: Course['category']) => setFormData({ ...formData, category: value })}>
+                  <div>
+                    <Label>Category *</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, category: v })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -234,61 +360,79 @@ const AdminDashboard = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="level">Level *</Label>
-                    <Select value={formData.level} onValueChange={(value: Course['level']) => setFormData({ ...formData, level: value })}>
+                  <div>
+                    <Label>Level *</Label>
+                    <Select
+                      value={formData.level}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, level: v })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="intermediate">
+                          Intermediate
+                        </SelectItem>
                         <SelectItem value="advanced">Advanced</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
+                {/* INSTRUCTOR + DURATION */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="instructor">Instructor *</Label>
+                  <div>
+                    <Label>Instructor *</Label>
                     <Input
-                      id="instructor"
                       value={formData.instructor}
-                      onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
-                      placeholder="e.g., John Doe"
+                      onChange={(e) =>
+                        setFormData({ ...formData, instructor: e.target.value })
+                      }
                       required
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration *</Label>
+                  <div>
+                    <Label>Duration *</Label>
                     <Input
-                      id="duration"
                       value={formData.duration}
-                      onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                      placeholder="e.g., 12 weeks"
+                      onChange={(e) =>
+                        setFormData({ ...formData, duration: e.target.value })
+                      }
                       required
                     />
                   </div>
                 </div>
 
+                {/* PRICE + MODE */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹) *</Label>
+                  <div>
+                    <Label>Price *</Label>
                     <Input
-                      id="price"
                       type="number"
                       value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="e.g., 4999"
+                      onChange={(e) =>
+                        setFormData({ ...formData, price: e.target.value })
+                      }
                       required
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="mode">Mode *</Label>
-                    <Select value={formData.mode} onValueChange={(value: Course['mode']) => setFormData({ ...formData, mode: value })}>
+                  <div>
+                    <Label>Mode *</Label>
+                    <Select
+                      value={formData.mode}
+                      onValueChange={(v) =>
+                        setFormData({
+                          ...formData,
+                          mode: v,
+                          centerId: "",
+                        })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -301,136 +445,138 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="image">Image URL (optional)</Label>
+                {/* CENTER (Conditional) */}
+                {(formData.mode === "offline" || formData.mode === "both") && (
+                  <div>
+                    <Label>Select Center *</Label>
+                    <Select
+                      value={formData.centerId}
+                      onValueChange={(v) =>
+                        setFormData({ ...formData, centerId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Center" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {centers.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.centerName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* IMAGE URL */}
+                <div>
+                  <Label>Image URL</Label>
                   <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
+                    value={formData.imageUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, imageUrl: e.target.value })
+                    }
                   />
                 </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" className="flex-1">{editingCourse ? 'Update Course' : 'Add Course'}</Button>
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
+                {/* ACTION BUTTONS */}
+                <div className="flex gap-3 mt-4">
+                  <Button className="flex-1" type="submit">
+                    {editingCourse ? "Update Course" : "Add Course"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Stats Grid */}
-        <div className="mb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">6</div>
-              <p className="text-xs text-muted-foreground mt-1">Active courses</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Students</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">5,350</div>
-              <p className="text-xs text-muted-foreground mt-1">+180 from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹2,45,000</div>
-              <p className="text-xs text-muted-foreground mt-1">+20% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">85%</div>
-              <p className="text-xs text-muted-foreground mt-1">+5% from last month</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Platform Management Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Manage Courses</TabsTrigger>
-            <TabsTrigger value="users">Manage Users</TabsTrigger>
-            <TabsTrigger value="transactions">View Transactions</TabsTrigger>
+        {/* ----------------------------------------------------
+            DASHBOARD TABS
+        ---------------------------------------------------- */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* MODIFIED: Changed from grid layout to flex-nowrap to guarantee one line */}
+          <TabsList className="flex w-full overflow-x-auto justify-start border-b border-input">
+            <TabsTrigger value="overview" className="flex-shrink-0">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="flex-shrink-0">
+              Courses
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex-shrink-0">
+              All Users
+            </TabsTrigger>
+            <TabsTrigger value="enrollments" className="flex-shrink-0">
+              Enrollments
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex-shrink-0">
+              Transactions
+            </TabsTrigger>
+            <TabsTrigger value="media" className="flex-shrink-0">
+              Media
+            </TabsTrigger>
+            <TabsTrigger value="centers" className="flex-shrink-0">
+              Centers
+            </TabsTrigger>
           </TabsList>
 
+          {/* -------- OVERVIEW -------- */}
           <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
+                  <CardTitle>Total Courses</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 text-sm">
-                    <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-muted-foreground">New enrollment</span>
-                      <span className="font-medium">Web Development</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-muted-foreground">Course completed</span>
-                      <span className="font-medium">UI/UX Design</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b pb-3">
-                      <span className="text-muted-foreground">New user registered</span>
-                      <span className="font-medium">2 hours ago</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Payment received</span>
-                      <span className="font-medium">₹4,999</span>
-                    </div>
-                  </div>
+                  <div className="text-3xl font-bold">{courses.length}</div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                  <CardTitle>Total Students</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab('courses')}>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Manage Courses
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab('users')}>
-                    <Users className="mr-2 h-4 w-4" />
-                    Manage Users
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab('transactions')}>
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    View Transactions
-                  </Button>
+                <CardContent>
+                  <div className="text-3xl font-bold">{users.length}</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹0</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Completion Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">85%</div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
+          {/* -------- COURSES TAB -------- */}
           <TabsContent value="courses" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>All Courses</CardTitle>
               </CardHeader>
+
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -443,23 +589,32 @@ const AdminDashboard = () => {
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
-                    {courses.map((course) => (
-                      <TableRow key={course.id}>
-                        <TableCell className="font-medium">{course.title}</TableCell>
-                        <TableCell className="capitalize">{course.category}</TableCell>
-                        <TableCell>{course.instructor}</TableCell>
-                        <TableCell>₹{course.price.toLocaleString()}</TableCell>
-                        <TableCell className="capitalize">{course.mode}</TableCell>
+                    {courses.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell>{c.courseTitle}</TableCell>
+                        <TableCell>{c.category}</TableCell>
+                        <TableCell>{c.instructor}</TableCell>
+                        <TableCell>₹{c.price}</TableCell>
+                        <TableCell>{c.mode}</TableCell>
+
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button size="icon" variant="ghost" onClick={() => handleEdit(course)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => handleDelete(course.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(c)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(c.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -469,30 +624,29 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* -------- USERS TAB (All Users) -------- */}
           <TabsContent value="users" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>All Users</CardTitle>
+                <CardTitle>Registered Users (Excluding Admin)</CardTitle>
               </CardHeader>
+
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ID</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead className="text-right">Enrolled Courses</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
-                    {getEnrolledUsers().map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.role}</TableCell>
-                        <TableCell className="text-right">{user.enrolledCourses}</TableCell>
+                    {users.map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>{u.fullName}</TableCell>
+                        <TableCell>{u.email}</TableCell>
+                        <TableCell>{u.role}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -501,38 +655,203 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* -------- ENROLLMENTS TAB (Unique Enrolled Students) -------- */}
+          <TabsContent value="enrollments" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Enrolled Students ({enrollments.length})</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                {enrollments.length === 0 ? (
+                  <p className="text-muted-foreground">No enrollments found.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Total Courses</TableHead>
+                        <TableHead>Courses Purchased</TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {enrollments.map((u) => (
+                        <TableRow key={u.userId}>
+                          <TableCell>{u.fullName}</TableCell>
+                          <TableCell>{u.email}</TableCell>
+                          <TableCell>{u.purchases.length}</TableCell>
+
+                          <TableCell>
+                            {u.purchases.map((c: any) => (
+                              <div key={c.purchaseId}>
+                                • {c.courseTitle} ({c.mode})
+                              </div>
+                            ))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* -------- TRANSACTIONS TAB (Existing Purchase Data) -------- */}
           <TabsContent value="transactions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
+                <CardTitle>Course Transactions</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {getTransactions().map((txn) => (
-                      <TableRow key={txn.id}>
-                        <TableCell className="font-mono text-xs">{txn.id}</TableCell>
-                        <TableCell>{txn.courseName}</TableCell>
-                        <TableCell>₹{txn.amount.toLocaleString()}</TableCell>
-                        <TableCell>{txn.date}</TableCell>
-                        <TableCell className="text-right">
-                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                            {txn.status}
-                          </span>
-                        </TableCell>
+                {purchases.length === 0 ? (
+                  <p className="text-muted-foreground">No transactions yet.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Course Title</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Purchase Date</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {purchases.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{p.user?.fullName}</TableCell>
+                          <TableCell>{p.user?.email}</TableCell>
+                          <TableCell>{p.course?.courseTitle}</TableCell>
+                          <TableCell>₹{p.course?.price}</TableCell>
+                          <TableCell>
+                            {new Date(p.purchaseDate).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{p.paymentStatus || "Paid"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* -------- MEDIA TAB -------- */}
+          <TabsContent value="media" className="mt-6">
+            <Card className="p-4">
+              <CardHeader>
+                <CardTitle>Media Library</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                {media.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    No media uploaded yet.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {media.map((m) => (
+                      <img
+                        key={m.id}
+                        src={`http://localhost:9090${m.fileUrl}`}
+                        className="rounded shadow"
+                      />
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* CENTERS TAB */}
+          <TabsContent value="centers" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Centers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCenterSubmit} className="space-y-4">
+                  <div>
+                    <Label>Center Name *</Label>
+                    <Input
+                      required
+                      value={formData.centerName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, centerName: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label>Address *</Label>
+                    <Input
+                      required
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>City *</Label>
+                      <Input
+                        required
+                        value={formData.city}
+                        onChange={(e) =>
+                          setFormData({ ...formData, city: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>State *</Label>
+                      <Input
+                        required
+                        value={formData.state}
+                        onChange={(e) =>
+                          setFormData({ ...formData, state: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Contact Number *</Label>
+                    <Input
+                      required
+                      value={formData.contactNumber}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          contactNumber: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Add Center
+                  </Button>
+                </form>
+
+                <div className="mt-6">
+                  {centers.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      No centers added yet.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {centers.map((c) => (
+                        <li key={c.id} className="p-3 border rounded">
+                          <strong>{c.centerName}</strong> - {c.address},{" "}
+                          {c.city}, {c.state} ({c.contactNumber})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

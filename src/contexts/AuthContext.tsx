@@ -1,63 +1,74 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import api from "@/api/axios";
 
 interface User {
-  id: string;
+  id: number;
+  fullName: string;
   email: string;
-  name: string;
-  role: 'admin' | 'user';
+  role: "USER" | "ADMIN";
 }
 
 interface AuthContextType {
   user: User | null;
+  signup: (fullName: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
+  // Load token + user from sessionStorage after refresh
   useEffect(() => {
-    const storedUser = localStorage.getItem('BALC_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const token = sessionStorage.getItem("token");
+    const userStr = sessionStorage.getItem("user");
+    if (token && userStr) {
+      setUser(JSON.parse(userStr));
     }
   }, []);
 
+  // SIGNUP
+  const signup = async (fullName: string, email: string, password: string) => {
+    await api.post("/api/auth/register", {
+      fullName,
+      email,
+      password,
+      role: "USER",
+    });
+  };
+
+  // LOGIN
   const login = async (email: string, password: string) => {
-    // Mock authentication - in production, this would call a backend API
-    const mockUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name: email.split('@')[0],
-      role: email.includes('admin') ? 'admin' : 'user',
-    };
-    setUser(mockUser);
-    localStorage.setItem('BALC_user', JSON.stringify(mockUser));
+    const response = await api.post("/api/auth/login", { email, password });
+
+    const token = response.data.token;
+    sessionStorage.setItem("token", token);
+
+    // fetch user details
+    const me = await api.get("/api/users/me");
+    sessionStorage.setItem("user", JSON.stringify(me.data));
+    setUser(me.data);
   };
 
-  const signup = async (email: string, password: string, name: string) => {
-    // Mock signup - in production, this would call a backend API
-    const mockUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-      role: 'user',
-    };
-    setUser(mockUser);
-    localStorage.setItem('BALC_user', JSON.stringify(mockUser));
-  };
-
+  // LOGOUT
   const logout = () => {
+    sessionStorage.clear(); // delete everything
     setUser(null);
-    localStorage.removeItem('BALC_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        signup,
+        login,
+        logout,
+        isAdmin: user?.role === "ADMIN",
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -65,8 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 };
