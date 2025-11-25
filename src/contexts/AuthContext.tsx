@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   // -----------------------------------------------------
-  //  LOAD USER FROM sessionStorage ON PAGE REFRESH
+  // LOAD USER FROM SESSION ON PAGE REFRESH
   // -----------------------------------------------------
   useEffect(() => {
     const savedUser = sessionStorage.getItem("user");
@@ -44,16 +44,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // -----------------------------------------------------
-  // LOGIN (JWT HEADER BASED)
+  // LOGIN
   // -----------------------------------------------------
   const login = async (email: string, password: string) => {
+    // Send login request
     const res = await api.post("/api/auth/login", { email, password });
 
-    // backend returns { token: "..." }
+    // Extract token
     const token = res.data.token;
     sessionStorage.setItem("token", token);
 
-    // Now request logged-in user details
+    // Get user info
     const me = await api.get("/api/users/me");
 
     sessionStorage.setItem("user", JSON.stringify(me.data));
