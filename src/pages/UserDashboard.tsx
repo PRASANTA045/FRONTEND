@@ -15,7 +15,6 @@ const UserDashboard = () => {
       try {
         const res = await getMyCourses();
 
-        // Ensure data is array
         setEnrolledCourses(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to fetch purchased courses", err);
@@ -35,7 +34,6 @@ const UserDashboard = () => {
           <h1 className="mb-2 text-4xl font-bold">
             Welcome back, {user?.fullName}!
           </h1>
-
           <p className="text-lg text-muted-foreground">
             Continue your learning journey
           </p>
@@ -50,9 +48,7 @@ const UserDashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold">{enrolledCourses.length}</p>
-                <p className="text-sm text-muted-foreground">
-                  Enrolled Courses
-                </p>
+                <p className="text-sm text-muted-foreground">Enrolled Courses</p>
               </div>
             </CardContent>
           </Card>
@@ -90,25 +86,35 @@ const UserDashboard = () => {
             <p>Loading...</p>
           ) : enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map((course) => (
-                <CourseCard
-                  key={course.purchaseId}
-                  course={{
-                    id: course.courseId,
-                    title: course.courseTitle,
-                    description: "No description available",
-                    category: "General",
-                    level: "Beginner",
-                    duration: "N/A",
-                    students: 0,
-                    rating: 0,
-                    instructor: course.instructor,
-                    price: 0,
-                    image: `${import.meta.env.VITE_API_BASE_URL}${course.imageUrl}`,
-                    mode: course.mode,
-                  }}
-                />
-              ))}
+
+              {enrolledCourses.map((course) => {
+                console.log("Purchased Course:", course);
+                console.log("Using ID:", course.courseId ?? course.id);
+
+                return (
+                  <CourseCard
+                    key={course.purchaseId}
+                    course={{
+                      id: Number(course.courseId ?? course.id),
+                      title: course.courseTitle,
+                      description: "No description available",
+                      category: "General",
+                      level: "Beginner",
+                      duration: "N/A",
+                      students: 0,
+                      rating: 0,
+                      instructor: course.instructor,
+                      price: 0,
+                      image:
+                        course.imageUrl
+                          ? `${import.meta.env.VITE_API_BASE_URL}${course.imageUrl}`
+                          : "/placeholder.jpg",
+                      mode: course.mode,
+                    }}
+                  />
+                );
+              })}
+
             </div>
           ) : (
             <Card>
