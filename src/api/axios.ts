@@ -1,50 +1,26 @@
 import axios from "axios";
 
-
-
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
-  withCredentials: true, 
+  withCredentials: true,   // 🔥 VERY IMPORTANT
 });
 
-// ======================================
-//   INTERCEPTOR FIX → DO NOT send 
-//   old JWT token during LOGIN or REGISTER
-// ======================================
+// ===============================
+// REMOVE ALL TOKEN LOGIC
+// JWT Cookie will be sent automatically
+// ===============================
 api.interceptors.request.use((config) => {
-  
-  // DO NOT attach token for login/register
-  if (
-    config.url?.includes("/auth/login") || 
-    config.url?.includes("/auth/register")
-  ) {
-    return config; 
-  }
-
-  // Attach token for all other API calls
-  const token = sessionStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  // NEVER attach Authorization header
+  // NEVER read sessionStorage token
   return config;
 });
 
-// ======================================
-// OPTIONAL: Response interceptor 
-// Auto-save JWT token into sessionStorage
-// ======================================
+// ===============================
+// REMOVE response token saving also
+// ===============================
 api.interceptors.response.use(
-  (response) => {
-    // If backend ever returns JWT in body (not cookie)
-    if (response.data?.token) {
-      sessionStorage.setItem("token", response.data.token);
-    }
-    return response;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (response) => response,
+  (error) => Promise.reject(error)
 );
 
 export default api;
