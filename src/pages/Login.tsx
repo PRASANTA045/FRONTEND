@@ -35,7 +35,15 @@ const Login = () => {
         navigate("/dashboard");
       }
 
-    } catch (error: any) {
+    } 
+    
+    catch (error: any) {
+    console.log("LOGIN ERROR:", error);
+
+  if (error.response) {
+    console.log("BACKEND STATUS:", error.response.status);
+    console.log("BACKEND DATA:", error.response.data);
+  }
       toast.error("Invalid credentials");
     }
   };
