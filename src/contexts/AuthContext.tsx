@@ -21,19 +21,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // -----------------------------------------------------
-  // LOAD USER FROM SESSION ON PAGE REFRESH
-  // -----------------------------------------------------
+  // Load logged-in user on refresh using /me
   useEffect(() => {
-    const savedUser = sessionStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const loadUser = async () => {
+      try {
+        const res = await api.get("/api/users/me"); 
+        setUser(res.data);
+      } catch {
+        // Not logged in
+      }
+    };
+    loadUser();
   }, []);
 
-  // -----------------------------------------------------
+  // ------------------------------
   // SIGNUP
-  // -----------------------------------------------------
+  // ------------------------------
   const signup = async (fullName: string, email: string, password: string) => {
     await api.post("/api/auth/register", {
       fullName,
@@ -43,31 +46,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // -----------------------------------------------------
+  // ------------------------------
   // LOGIN
-  // -----------------------------------------------------
+  // ------------------------------
   const login = async (email: string, password: string) => {
-    // Send login request
-    const res = await api.post("/api/auth/login", { email, password });
+    await api.post("/api/auth/login", { email, password });
 
-    // Extract token
-    const token = res.data.token;
-    sessionStorage.setItem("token", token);
-
-    // Get user info
+    // Now fetch logged-in user (cookie automatically sent)
     const me = await api.get("/api/users/me");
-
-    sessionStorage.setItem("user", JSON.stringify(me.data));
     setUser(me.data);
-
     return me.data;
   };
 
-  // -----------------------------------------------------
+  // ------------------------------
   // LOGOUT
-  // -----------------------------------------------------
+  // ------------------------------
   const logout = () => {
-    sessionStorage.clear();
     setUser(null);
   };
 
