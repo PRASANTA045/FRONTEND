@@ -17,6 +17,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 
 import Navbar from "@/components/Navbar";
 
+
+console.log("🔴 FRONTEND BASE URL = ", import.meta.env.VITE_API_BASE_URL);
+
+
 // Existing pages
 import Home from "./pages/Home";
 import Courses from "./pages/Courses"; // <-- Import Courses page
@@ -80,3 +84,4 @@ const App: React.FC = () => (
 
 
 export default App;
+//
