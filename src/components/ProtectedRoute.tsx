@@ -3,10 +3,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth();
-  const token = sessionStorage.getItem("token");
 
-  // If no token or no user → block access
-  if (!token || !user) {
+  // If user not loaded → block access
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
